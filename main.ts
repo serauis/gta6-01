@@ -10,7 +10,7 @@
 // Run it the way the grader does, with MAKEFUN_OUTPUT_DIR standing in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -39,3 +39,28 @@ const dossier = buildDossier(outputDir, {
   game_path_max_bytes: 1000,
 });
 writeFileSync(join(outputDir, 'dossier.json'), dossier);
+
+// Receipt for the log: how many files and bytes were handed in per tree, so a bad package
+// (a missing screenshots folder, an empty game tree) is obvious from the run output alone.
+function treeStats(dir: string): { files: number; bytes: number } {
+  let files = 0;
+  let bytes = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const sub = treeStats(path);
+      files += sub.files;
+      bytes += sub.bytes;
+    } else {
+      files += 1;
+      bytes += statSync(path).size;
+    }
+  }
+  return { files, bytes };
+}
+
+for (const name of ['game', 'screenshots']) {
+  const stats = treeStats(join(outputDir, name));
+  console.log(`${name}: ${stats.files} files, ${stats.bytes} bytes`);
+}
+console.log(`dossier.json: ${dossier.length} bytes`);

@@ -3,10 +3,18 @@
 // fixed steps, the player placed mid-action — then paints it twice and sets
 // window.__shotReady. Nothing here is a mock-up: what the judge sees is the game.
 
-import { LANE } from './config.js';
+import { LANE, STAR_THRESHOLDS } from './config.js';
+import { clamp } from './random.js';
 import { createCar } from './vehicles.js';
 
 const STEP = 1 / 60;
+
+// The wanted level is normally recomputed inside the game loop; a staged scene that sets
+// heat after its last step must refresh the stars itself or the HUD would show none.
+function refreshStars(game) {
+  const effective = Math.max(game.heat, game.heatFloor);
+  game.stars = clamp(STAR_THRESHOLDS.filter((t) => effective >= t).length, 0, 5);
+}
 
 function runSteps(game, step, count, control) {
   for (let i = 0; i < count; i++) {
@@ -35,6 +43,21 @@ function stageCover(game, step) {
   car.vy = 0;
   game.player.x = car.x;
   game.player.y = car.y;
+  // Traffic sharing the avenue and the crossing ahead, so the cover breathes.
+  const ahead = createCar(city, { x: car.x + 330, y: car.y, angle: 0, type: 'sedan', color: '#53b7e5', rng: game.rng });
+  ahead.driver = 'traffic';
+  ahead.vx = 195;
+  game.cars.push(ahead);
+  const oncoming = createCar(city, { x: car.x + 560, y: city.hz[2] - LANE, angle: Math.PI, type: 'taxi', livery: 'taxi', color: '#ffd75e', rng: game.rng });
+  oncoming.driver = 'traffic';
+  oncoming.vx = -185;
+  game.cars.push(oncoming);
+  const crossing = createCar(city, { x: city.vx[5], y: city.hz[2] - 175, angle: Math.PI / 2, type: 'sedan', color: '#7be495', rng: game.rng });
+  crossing.driver = 'traffic';
+  crossing.vy = 150;
+  game.cars.push(crossing);
+  game.people.addPed(city.landmarks.garage.door.x - 30, city.landmarks.garage.door.y + 4, {});
+  game.people.addPed(car.x + 210, car.y - LANE - 26, {});
 }
 
 // On foot outside Rosa's Diner: pistol drawn, a job on offer, the law already interested.
@@ -63,6 +86,7 @@ function stageFoot(game, step) {
     hp: 100, state: 'chase', shootT: 1, downT: 0, phase: 2, removeMe: false,
   });
   game.bustMeter = 0.45;
+  refreshStars(game);
 }
 
 // Mid-mission: the stolen Comet, two stars up, a cruiser on the tail, the garage waiting.
@@ -83,14 +107,14 @@ function stageMission(game, step) {
   game.enterCar(car);
   game.heat = 38;
   const tail = createCar(city, {
-    x: car.x - 210, y: car.y, angle: 0, type: 'police', livery: 'police', color: '#f7f0e1',
+    x: car.x - 250, y: car.y, angle: 0, type: 'police', livery: 'police', color: '#f7f0e1',
   });
   tail.driver = 'cop';
   tail.police = true;
   tail.ai = { mode: 'pursue', droppedOfficer: false };
   game.cars.push(tail);
   game.police.units.push(tail);
-  runSteps(game, step, 130, null);
+  runSteps(game, step, 95, null);
   if (game.player.car !== car) {
     // The chase got rough in staging; put Rico back behind the wheel for the frame.
     game.player.car = car;
