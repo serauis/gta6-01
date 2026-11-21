@@ -69,6 +69,8 @@ export function buildCity(rng) {
         cells.push({ x, y, w: CELL_SIZE, h: CELL_SIZE, kind: 'park' });
         const palms = rng.int(4, 8);
         for (let i = 0; i < palms; i++) addPalm(x + rng.range(18, CELL_SIZE - 18), y + rng.range(18, CELL_SIZE - 18));
+        props.push({ x: x + 26, y: y + CELL_SIZE / 2, kind: 'bench', angle: Math.PI / 2, r: 8 });
+        props.push({ x: x + CELL_SIZE - 26, y: y + CELL_SIZE / 2, kind: 'bench', angle: Math.PI / 2, r: 8 });
       } else if (roll < 0.28) {
         cells.push({ x, y, w: CELL_SIZE, h: CELL_SIZE, kind: 'parking' });
         const spots = rng.int(2, 4);
@@ -81,10 +83,14 @@ export function buildCity(rng) {
       } else if (roll < 0.4) {
         cells.push({ x, y, w: CELL_SIZE, h: CELL_SIZE, kind: 'plaza' });
         const crates = rng.int(2, 5);
+        const corners = [[26, 26], [CELL_SIZE - 26, 26], [26, CELL_SIZE - 26], [CELL_SIZE - 26, CELL_SIZE - 26]];
         for (let i = 0; i < crates; i++) {
-          props.push({ x: x + rng.range(20, CELL_SIZE - 20), y: y + rng.range(20, CELL_SIZE - 20), kind: 'crate', r: 9 });
+          const [cx, cy] = corners[i % corners.length];
+          props.push({ x: x + cx, y: y + cy, kind: 'crate', r: 9 });
         }
-        if (rng.chance(0.7)) addPalm(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+        if (rng.chance(0.7)) addPalm(x + CELL_SIZE - 24, y + 24);
+        props.push({ x: x + CELL_SIZE / 2 - 46, y: y + CELL_SIZE / 2, kind: 'bench', angle: Math.PI / 2, r: 8 });
+        props.push({ x: x + CELL_SIZE / 2 + 46, y: y + CELL_SIZE / 2, kind: 'bench', angle: Math.PI / 2, r: 8 });
       } else {
         cells.push({ x, y, w: CELL_SIZE, h: CELL_SIZE, kind: 'built' });
         const central = c >= 3 && c <= 5 && r >= 2 && r <= 3 ? 3 : 0;
@@ -123,6 +129,15 @@ export function buildCity(rng) {
 
   // --- beach palms along the promenade -----------------------------------------
   for (let y = 90; y < WORLD_H - 60; y += rng.range(85, 130)) addPalm(rng.range(112, 138), y);
+
+  // --- beach umbrellas and promenade lamps: the shore strip is a place, not a border --
+  const UMBRELLA_COLORS = ['#e5484d', '#ffd75e', '#53b7e5', '#ef6aa5', '#f7f0e1', '#2ec4b6'];
+  for (let y = 170; y < WORLD_H - 140; y += rng.range(125, 190)) {
+    props.push({ x: rng.range(90, 124), y, kind: 'umbrella', color: rng.pick(UMBRELLA_COLORS), r: 12 });
+  }
+  for (let y = 240; y < WORLD_H - 90; y += 190) {
+    props.push({ x: 158, y, kind: 'lamp', r: 3 });
+  }
 
   // --- street lamps at alternating intersections --------------------------------
   for (let i = 0; i < COLS; i += 2) {

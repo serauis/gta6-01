@@ -30,6 +30,20 @@ City "Palmira", driver Rico Vega, five-mission story chain + free-roam systems.
       locally by design — the site runs them on the sealed recording).
       Packaged output tree re-play-tested standalone: zero errors.
 
+- [x] S7 v2 (audit-and-repair swing): screenshot-led rebuild under a fresh recording.
+      City dressed up: beach umbrellas + promenade lamps, park/plaza benches, plaza
+      fountains, boats on the bay; buildings gained roof vents, water tanks, solar
+      panels, roof gardens, sun-bleach and storefront awnings; nights gained landmark
+      neon. Four new staged frames: 1-cover = the Palmira Job getaway (4 stars, two
+      cruisers, GO GO GO banner, skid arcs), 2-foot = the diner standoff (second
+      officer, witnesses, one fleeing), 3-mission = the bank grab mid-channel with a
+      cruiser rolling up, 4-dusk = neon night on Shore Drive, story done, motel fare.
+      Play-test rig rebuilt at /tmp/gta-rig.mjs (raw CDP + Fetch fulfilment under a
+      fake HTTPS origin; loopback HTTP is refused): title → new game → mission
+      auto-start → walk → enter car → 110 km/h → exit → pause/resume, zero errors.
+      Shots byte-identical across independent captures; main.ts x2 byte-identical
+      (dossier 960,663 B); screenshots 131–165 KiB each; vendor sha unchanged.
+
 ## For the coordinator
 - .makefun/owner.json not added (repo owner = account login serauis); add only if needed.
 - serve.ts / shots.json are kit starter plumbing; shots.json updated to our scenes at S5.

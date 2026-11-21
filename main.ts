@@ -7,6 +7,11 @@
 // (reference/gate.json): they keep the package inside the limits the gate enforces, so an
 // oversize entry fails here first instead of at grading.
 //
+// The v2 edition keeps the same five-mission story and systems; what changed is the
+// presentation the judge grades: a richer city (roof furniture, storefront awnings, plaza
+// fountains, a dressed beach) and four new staged frames — the bank-job getaway, the diner
+// standoff, the Palmira Job mid-grab, and a neon night on Shore Drive.
+//
 // Run it the way the grader does, with MAKEFUN_OUTPUT_DIR standing in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
@@ -62,5 +67,10 @@ function treeStats(dir: string): { files: number; bytes: number } {
 for (const name of ['game', 'screenshots']) {
   const stats = treeStats(join(outputDir, name));
   console.log(`${name}: ${stats.files} files, ${stats.bytes} bytes`);
+}
+// The screenshots are what the judge actually sees, so the receipt names each one with
+// its size: a missing or empty frame is obvious here, not at grading time.
+for (const entry of readdirSync(join(outputDir, 'screenshots')).sort()) {
+  console.log(`screenshot ${entry}: ${statSync(join(outputDir, 'screenshots', entry)).size} bytes`);
 }
 console.log(`dossier.json: ${dossier.length} bytes`);

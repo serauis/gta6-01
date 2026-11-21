@@ -128,6 +128,39 @@ export class Renderer {
     // Docks concrete
     ctx.fillStyle = '#a9a294';
     ctx.fillRect(300, city.hz[city.hz.length - 1] + ROAD_W / 2, city.W - 300, city.H);
+    // Two boats riding the bay, bobbing on the swell: the water is a place too.
+    this.drawBoat(30, city.hz[1] + 150, '#e5484d');
+    this.drawBoat(25, city.hz[3] + 40, '#f7f0e1');
+  }
+
+  drawBoat(x, y, color) {
+    const { ctx } = this;
+    const bob = Math.sin(this.time * 0.9 + y) * 2;
+    ctx.save();
+    ctx.translate(x, y + bob);
+    // Wake: two fading strokes astern.
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-14, 7);
+    ctx.lineTo(-30 - Math.sin(this.time * 1.3 + y) * 3, 11);
+    ctx.moveTo(-14, -7);
+    ctx.lineTo(-30 - Math.cos(this.time * 1.1 + y) * 3, -11);
+    ctx.stroke();
+    // Hull and cabin.
+    ctx.fillStyle = 'rgba(20,40,50,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(2, 4, 19, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(-17, -6, 34, 12, 5);
+    ctx.fill();
+    ctx.fillStyle = '#f7f0e1';
+    ctx.fillRect(-5, -4, 11, 8);
+    ctx.fillStyle = '#274b73';
+    ctx.fillRect(-3, -3, 4, 6);
+    ctx.restore();
   }
 
   drawRoads(game, view) {
@@ -192,6 +225,17 @@ export class Renderer {
         ctx.moveTo(cell.x + cell.w / 2, cell.y);
         ctx.lineTo(cell.x + cell.w / 2, cell.y + cell.h);
         ctx.stroke();
+        // Flower beds in the quadrants: seeded dots of colour, so a park reads as tended.
+        const FLOWERS = ['#ef6aa5', '#ffd75e', '#e5484d', '#f7f0e1'];
+        for (let i = 0; i < 12; i++) {
+          const fx = cell.x + 16 + hash(cell.x * 3 + i * 17) * (cell.w - 32);
+          const fy = cell.y + 16 + hash(cell.y * 5 + i * 23) * (cell.h - 32);
+          if (Math.abs(fx - (cell.x + cell.w / 2)) < 14 || Math.abs(fy - (cell.y + cell.h / 2)) < 14) continue;
+          ctx.fillStyle = FLOWERS[i % FLOWERS.length];
+          ctx.beginPath();
+          ctx.arc(fx, fy, 2.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
       } else if (cell.kind === 'parking') {
         ctx.fillStyle = PALETTE.asphaltDark;
         ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
@@ -211,6 +255,35 @@ export class Renderer {
         for (let y = cell.y + 22; y < cell.y + cell.h; y += 22) {
           ctx.beginPath(); ctx.moveTo(cell.x, y); ctx.lineTo(cell.x + cell.w, y); ctx.stroke();
         }
+        // The plaza fountain: a stone ring, animated ripples, a bright jet at the centre.
+        const fx = cell.x + cell.w / 2;
+        const fy = cell.y + cell.h / 2;
+        ctx.fillStyle = 'rgba(60,45,20,0.18)';
+        ctx.beginPath();
+        ctx.ellipse(fx + 3, fy + 5, 30, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#a89a7d';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4fb8c9';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 21, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 1.6;
+        for (let k = 0; k < 2; k++) {
+          const rr = 4 + ((this.time * 9 + k * 8) % 15);
+          ctx.globalAlpha = 1 - rr / 20;
+          ctx.beginPath();
+          ctx.arc(fx, fy, rr, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#eafcff';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 3.2, 0, Math.PI * 2);
+        ctx.fill();
       } else {
         ctx.fillStyle = '#c8b995';
         ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
@@ -269,6 +342,38 @@ export class Renderer {
         ctx.beginPath();
         ctx.arc(prop.x, prop.y, 1.8, 0, Math.PI * 2);
         ctx.fill();
+      } else if (prop.kind === 'umbrella') {
+        // A beach umbrella from above: striped canopy, a soft shadow, the pole at centre.
+        ctx.fillStyle = 'rgba(60,40,10,0.20)';
+        ctx.beginPath();
+        ctx.ellipse(prop.x + 4, prop.y + 5, 13, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        for (let i = 0; i < 6; i++) {
+          ctx.fillStyle = i % 2 === 0 ? prop.color : '#f7f0e1';
+          ctx.beginPath();
+          ctx.moveTo(prop.x, prop.y);
+          ctx.arc(prop.x, prop.y, 12.5, (i / 6) * Math.PI * 2, ((i + 1) / 6) * Math.PI * 2);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.fillStyle = '#6b4a2a';
+        ctx.beginPath();
+        ctx.arc(prop.x, prop.y, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (prop.kind === 'bench') {
+        ctx.save();
+        ctx.translate(prop.x, prop.y);
+        ctx.rotate(prop.angle || 0);
+        ctx.fillStyle = 'rgba(60,40,10,0.20)';
+        ctx.fillRect(-11, -3, 22, 8);
+        ctx.fillStyle = '#8a6b46';
+        ctx.fillRect(-11, -4.5, 22, 2.6);
+        ctx.fillRect(-11, -1, 22, 2.6);
+        ctx.fillRect(-11, 2.5, 22, 2.6);
+        ctx.fillStyle = '#4c4438';
+        ctx.fillRect(-11, -5.5, 22, 1.2);
+        ctx.fillRect(-11, 5, 22, 1.2);
+        ctx.restore();
       }
     }
   }
@@ -353,6 +458,86 @@ export class Renderer {
         const ay = b.y + 14 + hash(b.y) * Math.max(1, b.h - 44);
         ctx.fillRect(ax, ay, 17, 13);
         if (b.storeys >= 5) ctx.fillRect(b.x + b.w - 34, b.y + b.h - 30, 15, 12);
+      }
+      // Sun-bleach: one quadrant of the roof faded harder than the rest.
+      const bleach = hash(b.x * 1.7 + b.y * 0.3);
+      if (bleach > 0.45 && b.w > 60 && b.h > 60) {
+        ctx.fillStyle = 'rgba(255,250,235,0.10)';
+        const bw = (b.w - 10) / 2;
+        const bh = (b.h - 10) / 2;
+        ctx.fillRect(b.x + 5 + (bleach > 0.72 ? bw : 0), b.y + 5 + (bleach > 0.72 ? 0 : bh), bw, bh);
+      }
+      // Vent pipes on anything two storeys up.
+      if (b.storeys >= 2) {
+        const vents = 1 + Math.floor(hash(b.x + b.y) * 3);
+        for (let i = 0; i < vents; i++) {
+          const vx2 = b.x + 13 + hash(b.x * 3 + i * 29) * Math.max(1, b.w - 30);
+          const vy2 = b.y + 13 + hash(b.y * 3 + i * 41) * Math.max(1, b.h - 30);
+          ctx.fillStyle = 'rgba(0,0,0,0.16)';
+          ctx.beginPath();
+          ctx.arc(vx2 + 1.5, vy2 + 2, 3.6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = shade(b.roof, 0.55);
+          ctx.beginPath();
+          ctx.arc(vx2, vy2, 3.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // A water tank crowns the tall blocks.
+      if (b.storeys >= 5) {
+        const tx = b.x + b.w - 24;
+        const ty = b.y + 22;
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.beginPath();
+        ctx.arc(tx + 2, ty + 3, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#9a7b58';
+        ctx.beginPath();
+        ctx.arc(tx, ty, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#7d6244';
+        ctx.beginPath();
+        ctx.arc(tx, ty, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (b.storeys >= 3 && hash(b.y * 2.1 + b.x) < 0.34 && b.w > 90) {
+        // Solar panels: a dark blue grid catching the sun.
+        const px = b.x + 12 + hash(b.x * 5) * Math.max(1, b.w - 60);
+        const py = b.y + 12 + hash(b.y * 5) * Math.max(1, b.h - 44);
+        ctx.fillStyle = '#274b73';
+        ctx.fillRect(px, py, 36, 22);
+        ctx.strokeStyle = 'rgba(190,225,255,0.4)';
+        ctx.lineWidth = 1;
+        for (let gx = 1; gx < 4; gx++) {
+          ctx.beginPath(); ctx.moveTo(px + gx * 9, py); ctx.lineTo(px + gx * 9, py + 22); ctx.stroke();
+        }
+        ctx.beginPath(); ctx.moveTo(px, py + 11); ctx.lineTo(px + 36, py + 11); ctx.stroke();
+      }
+      // A roof garden softens the low, wide blocks.
+      if (b.storeys <= 2 && b.w > 120 && hash(b.x * 0.7 + b.y * 1.3) < 0.3) {
+        const gx = b.x + b.w * 0.18;
+        const gy = b.y + b.h * 0.16;
+        const gw = b.w * 0.34;
+        const gh = b.h * 0.3;
+        ctx.fillStyle = '#6db85e';
+        ctx.fillRect(gx, gy, gw, gh);
+        ctx.fillStyle = '#3f9e4d';
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.arc(gx + 6 + hash(b.x + i * 13) * (gw - 12), gy + 6 + hash(b.y + i * 7) * (gh - 12), 3.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // A striped storefront awning over the pavement on the street side.
+      if (b.kind !== 'warehouse' && hash(b.x * 2.3 + b.y * 0.9) < 0.6) {
+        const aw = b.w * 0.66;
+        const ax = b.x + (b.w - aw) / 2;
+        const ay = b.y + b.h;
+        for (let sx = 0; sx < aw; sx += 9) {
+          ctx.fillStyle = Math.floor(sx / 9) % 2 === 0 ? shade(b.roof, 0.82) : '#f3e6cf';
+          ctx.fillRect(ax + sx, ay, Math.min(9, aw - sx), 9);
+        }
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(ax, ay + 9, aw, 3);
       }
       if (b.label) {
         const cx = b.x + b.w / 2;
@@ -657,7 +842,7 @@ export class Renderer {
     for (const prop of game.city.props) {
       if (prop.kind !== 'lamp' || !inView(prop.x, prop.y, 60)) continue;
       ctx.globalAlpha = alpha * 1.15;
-      ctx.drawImage(this.glow, prop.x - cam.x - 44, prop.y - cam.y - 44, 88, 88);
+      ctx.drawImage(this.glow, prop.x - cam.x - 54, prop.y - cam.y - 54, 108, 108);
     }
     // Headlights for driven cars
     for (const car of game.cars) {
@@ -669,7 +854,47 @@ export class Renderer {
       ctx.drawImage(this.glow, car.spec.w / 2 - 8, -34, 96, 68);
       ctx.restore();
     }
+    // Neon spill from the landmark signs: each named place throws its colour onto the street.
+    const NEON = {
+      "ROSA'S DINER": '#ff6b5e', 'CORAL MOTEL': '#ff7ac0', 'PALMIRA TRUST BANK': '#ffd75e',
+      "TITO'S GARAGE": '#53b7e5', 'PALMIRA GENERAL': '#eaf6ff', 'PALMIRA PD': '#508cff',
+      'OLD CANNERY': '#ffb347', 'PALMIRA DOCKS': '#7fd4c9',
+    };
+    for (const b of game.city.buildings) {
+      if (!b.label || !NEON[b.label] || !inView(b.door.x, b.door.y, 80)) continue;
+      const hex = NEON[b.label];
+      const n = parseInt(hex.slice(1), 16);
+      const grad = ctx.createRadialGradient(b.door.x - cam.x, b.door.y - cam.y, 4, b.door.x - cam.x, b.door.y - cam.y, 95);
+      grad.addColorStop(0, `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha * 0.85})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = grad;
+      ctx.fillRect(b.door.x - cam.x - 95, b.door.y - cam.y - 95, 190, 190);
+    }
     ctx.restore();
+    // The signs themselves, re-lit: label text with a neon halo once the sun is down.
+    if (alpha > 0.1) {
+      const NEON = {
+        "ROSA'S DINER": '#ff6b5e', 'CORAL MOTEL': '#ff7ac0', 'PALMIRA TRUST BANK': '#ffd75e',
+        "TITO'S GARAGE": '#53b7e5', 'PALMIRA GENERAL': '#eaf6ff', 'PALMIRA PD': '#508cff',
+        'OLD CANNERY': '#ffb347', 'PALMIRA DOCKS': '#7fd4c9',
+      };
+      ctx.save();
+      ctx.font = '700 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      for (const b of game.city.buildings) {
+        if (!b.label || !NEON[b.label]) continue;
+        const sx = b.x + b.w / 2 - cam.x;
+        const sy = b.y - 8 - cam.y;
+        if (sx < -80 || sx > VIEW_W + 80 || sy < -20 || sy > VIEW_H + 20) continue;
+        ctx.shadowColor = NEON[b.label];
+        ctx.shadowBlur = 16;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(b.label, sx, sy);
+        ctx.fillText(b.label, sx, sy);
+      }
+      ctx.restore();
+    }
     void lerp;
   }
 
