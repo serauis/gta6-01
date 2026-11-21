@@ -88,7 +88,7 @@ export function stepCar(car, dt, control, city) {
   const beforeVy = car.vy;
   car.x += car.vx * dt;
   car.y += car.vy * dt;
-  car.x = clamp(car.x, 26, city.W - 26);
+  car.x = clamp(car.x, 74, city.W - 26); // the west edge is open water — cars stop at the shore
   car.y = clamp(car.y, 26, city.H - 26);
 
   const resolved = city.collideCircle(car.x, car.y, spec.w * 0.36);

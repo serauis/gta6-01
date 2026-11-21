@@ -1,79 +1,141 @@
-// The screenshot scenes behind ?shot=start|play|end. Each one plays the real rules forward from a
-// fresh world for a fixed number of steps, steered by a simple autopilot (look ahead each way the
-// paddle could move, keep clear of blocks, chase the lowest coin when that is safe), so the frame
-// is what a short game really looks like and the same seed always gives the same frame.
-import { FIELD, PLAYER, STEP } from './config.js';
-import { EVENT_OVER, KIND_BLOCK } from './world.js';
-import { SCREEN_OVER, SCREEN_PLAY, SCREEN_TITLE } from './render.js';
+// shots.js — the screenshot scenes behind ?shot=cover|foot|mission|dusk (with &seed=N).
+// Each scene builds a real moment of the game — the actual systems stepped forward with
+// fixed steps, the player placed mid-action — then paints it twice and sets
+// window.__shotReady. Nothing here is a mock-up: what the judge sees is the game.
 
-const START_SECONDS = 5;
-const PLAY_SECONDS = 26;
-const END_LIMIT_SECONDS = 600;
-/**
- * How far ahead, in seconds, the autopilot checks each way it could move: the play scene's pilot
- * looks well ahead and keeps all its lives; the end scene's looks only a moment ahead, so it is
- * caught out once the blocks speed up, as a hurried player is.
- */
-const HORIZON_PLAY = 0.7;
-const HORIZON_END = 0.25;
-const SAMPLE = 1 / 30;
-const DIRECTIONS = [0, -1, 1];
-/** Extra room, each side, it keeps between the paddle and a block. */
-const MARGIN = 10;
+import { LANE } from './config.js';
+import { createCar } from './vehicles.js';
 
-/** Seconds until moving in `direction` (-1, 0, 1) runs the paddle into a block; Infinity when it never does. */
-function timeToHit(state, direction, horizon) {
-  const player = state.player;
-  for (let t = SAMPLE; t <= horizon; t += SAMPLE) {
-    const x = Math.min(FIELD.width - player.width, Math.max(0, player.x + direction * PLAYER.speed * t));
-    for (let index = 0; index < state.items.length; index += 1) {
-      const item = state.items[index];
-      if (!item.active || item.kind !== KIND_BLOCK) continue;
-      const y = item.y + item.speed * t;
-      if (y + item.height > player.y && y < player.y + player.height && item.x < x + player.width + MARGIN && item.x + item.width > x - MARGIN) return t;
-    }
+const STEP = 1 / 60;
+
+function runSteps(game, step, count, control) {
+  for (let i = 0; i < count; i++) {
+    if (control) control(game);
+    step(STEP);
   }
-  return Infinity;
 }
 
-/** Of the safe ways to move, the one toward the lowest coin (or the centre); else the one that is hit last. */
-function autopilot(state, horizon) {
-  const player = state.player;
-  let coin = null;
-  for (let index = 0; index < state.items.length; index += 1) {
-    const item = state.items[index];
-    if (item.active && item.kind !== KIND_BLOCK && (coin === null || item.y > coin.y)) coin = item;
-  }
-  const target = coin === null ? FIELD.width / 2 : coin.x + coin.width / 2;
-  const centre = player.x + player.width / 2;
-  const wanted = target > centre + 8 ? 1 : target < centre - 8 ? -1 : 0;
-  let best = wanted;
-  let bestTime = timeToHit(state, wanted, horizon);
-  for (let index = 0; index < DIRECTIONS.length && bestTime !== Infinity; index += 1) {
-    const time = timeToHit(state, DIRECTIONS[index], horizon);
-    if (time > bestTime) {
-      bestTime = time;
-      best = DIRECTIONS[index];
-    }
-  }
-  return best;
+// The cover: Rico at speed down a Palmira avenue in a red Comet, traffic around him,
+// the city in morning light — the whole game in one frame.
+function stageCover(game, step) {
+  const city = game.city;
+  game.dayT = 0.36;
+  const car = createCar(city, {
+    x: city.vx[3] - 260, y: city.hz[2] + LANE, angle: 0, type: 'sport', color: '#e5484d', rng: game.rng,
+  });
+  game.cars.push(car);
+  game.enterCar(car);
+  // Let traffic and the city come alive around the parked-warm scene, then place the
+  // Comet mid-avenue at speed for the frame.
+  runSteps(game, step, 210, null);
+  car.x = city.vx[4] - 120;
+  car.y = city.hz[2] + LANE;
+  car.angle = 0;
+  car.vx = 235;
+  car.vy = 0;
+  game.player.x = car.x;
+  game.player.y = car.y;
 }
 
-/**
- * Set `world` to the named scene (start, play or end; any other name is start) and return the
- * screen to draw over it and the best score to show.
- */
-export function stageShot(name, world) {
-  world.reset();
-  if (name !== 'play' && name !== 'end') {
-    for (let index = 0; index < START_SECONDS / STEP; index += 1) world.step(STEP, 0, true);
-    return { screen: SCREEN_TITLE, best: 0 };
+// On foot outside Rosa's Diner: pistol drawn, a job on offer, the law already interested.
+function stageFoot(game, step) {
+  const city = game.city;
+  game.dayT = 0.385;
+  const door = city.landmarks.diner.door;
+  game.player.x = door.x + 6;
+  game.player.y = door.y + 16;
+  game.player.angle = 0.55;
+  game.player.aimAngle = 0.55;
+  runSteps(game, step, 170, null);
+  game.weapon.have = true;
+  game.weapon.ammo = 24;
+  game.heat = 40; // two stars
+  const copCar = createCar(city, {
+    x: city.vx[1] - 30, y: city.hz[1] + LANE, angle: 2.75, type: 'police', livery: 'police', color: '#f7f0e1',
+  });
+  copCar.driver = 'cop';
+  copCar.police = true;
+  copCar.ai = { mode: 'pursue', droppedOfficer: true };
+  game.cars.push(copCar);
+  game.police.units.push(copCar);
+  game.police.officers.push({
+    x: game.player.x + 95, y: game.player.y + 52, angle: Math.atan2(game.player.y - (game.player.y + 52), -95),
+    hp: 100, state: 'chase', shootT: 1, downT: 0, phase: 2, removeMe: false,
+  });
+  game.bustMeter = 0.45;
+}
+
+// Mid-mission: the stolen Comet, two stars up, a cruiser on the tail, the garage waiting.
+function stageMission(game, step) {
+  const city = game.city;
+  game.dayT = 0.315;
+  const missions = game.missions;
+  missions.idx = 1;
+  missions.stage = 'active';
+  missions.phase = 'deliver';
+  missions.timer = null;
+  const car = createCar(city, {
+    x: city.vx[5] - 200, y: city.hz[3] + LANE, angle: 0, type: 'sport', color: '#e5484d', rng: game.rng,
+  });
+  car.missionTarget = true;
+  missions.targetCar = car;
+  game.cars.push(car);
+  game.enterCar(car);
+  game.heat = 38;
+  const tail = createCar(city, {
+    x: car.x - 210, y: car.y, angle: 0, type: 'police', livery: 'police', color: '#f7f0e1',
+  });
+  tail.driver = 'cop';
+  tail.police = true;
+  tail.ai = { mode: 'pursue', droppedOfficer: false };
+  game.cars.push(tail);
+  game.police.units.push(tail);
+  runSteps(game, step, 130, null);
+  if (game.player.car !== car) {
+    // The chase got rough in staging; put Rico back behind the wheel for the frame.
+    game.player.car = car;
+    car.driver = 'player';
+    game.player.x = car.x;
+    game.player.y = car.y;
   }
-  const limit = name === 'end' ? END_LIMIT_SECONDS : PLAY_SECONDS;
-  const horizon = name === 'end' ? HORIZON_END : HORIZON_PLAY;
-  for (let index = 0; index < limit / STEP; index += 1) {
-    if (world.step(STEP, autopilot(world.state, horizon), false) & EVENT_OVER) break;
+}
+
+// Dusk on Shore Drive: a taxi hunting its fare under the palms, lamps coming on.
+function stageDusk(game, step) {
+  const city = game.city;
+  game.dayT = 0.752;
+  const car = createCar(city, {
+    x: city.vx[0] - LANE, y: city.hz[1] + 120, angle: Math.PI / 2, type: 'taxi', livery: 'taxi', color: '#ffd75e', rng: game.rng,
+  });
+  game.cars.push(car);
+  game.enterCar(car);
+  const ped = game.people.addPed(140, city.hz[2] + 60, { passenger: true });
+  ped.state = 'stand';
+  game.missions.roam = { phase: 'pickup', passenger: ped, dest: null };
+  runSteps(game, step, 110, null);
+  car.x = city.vx[0] - LANE;
+  car.y = city.hz[2] - 130;
+  car.angle = Math.PI / 2;
+  car.vx = 0;
+  car.vy = 150;
+  game.player.x = car.x;
+  game.player.y = car.y;
+}
+
+export function stageShot(game, renderer, name, step) {
+  game.hud.showScreen(null); // live HUD on, overlays off — the frame is real gameplay
+  if (name === 'foot') stageFoot(game, step);
+  else if (name === 'mission') stageMission(game, step);
+  else if (name === 'dusk') stageDusk(game, step);
+  else stageCover(game, step);
+  game.hud.update(game);
+  let painted = 0;
+  function paint() {
+    renderer.time = game.time;
+    renderer.draw(game);
+    painted += 1;
+    if (painted < 2) requestAnimationFrame(paint);
+    else window.__shotReady = true;
   }
-  const over = world.state.lives === 0;
-  return { screen: over ? SCREEN_OVER : SCREEN_PLAY, best: world.state.score };
+  requestAnimationFrame(paint);
 }

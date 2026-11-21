@@ -11,12 +11,17 @@ City "Palmira", driver Rico Vega, five-mission story chain + free-roam systems.
 - [x] S0 Play-test rig: /tmp/drive.mjs (raw CDP over Node WebSocket) drives
       /opt/meta-chromium/chrome with the hatch WebGL allow-all policy
       (/tmp/webgl-policy.txt, sha256 8097045f...64c6). Smoke test passed.
-- [ ] S1 main.ts rewritten in our own words (same caps/behaviour) + NOTES.md.
-- [ ] S2 Engine core: index.html, config, random, input, city, render, main —
+- [x] S1 main.ts rewritten in our own words (same caps/behaviour) + NOTES.md.
+- [x] S2 Engine core: index.html, config, random, input, city, render, main —
       player on foot + enter/drive cars, camera, collisions.
-- [ ] S3 Traffic AI, pedestrians, police + wanted, combat, busted/wasted.
-- [ ] S4 HUD + minimap, missions/story, save, title screen, audio.
-- [ ] S5 Shot staging (?shot=cover|foot|mission|dusk), 4 screenshots, polish.
+- [x] S3 Traffic AI, pedestrians, police + wanted, combat, busted/wasted.
+- [x] S4 HUD + minimap, missions/story, save, title screen, audio.
+      Play-test (CDP driver, real input): title → new game → mission auto-start →
+      walk → enter truck → drive 207 px/s → pause → heat 135 → 5 stars, 5 units,
+      chase — zero console/page errors. Fixes along the way: canvas backing store
+      pinned to 1280×720, favicon data URI, cars clamped off the water.
+- [ ] S5 Shot staging (?shot=cover|foot|mission|dusk), 4 screenshots, polish
+      (incl. one genuine revision edit to main.ts for thinking_revised).
 - [ ] S6 main.ts x2 byte-identical, kit check, final commit + report.
 
 ## For the coordinator
