@@ -20,9 +20,15 @@ City "Palmira", driver Rico Vega, five-mission story chain + free-roam systems.
       walk → enter truck → drive 207 px/s → pause → heat 135 → 5 stars, 5 units,
       chase — zero console/page errors. Fixes along the way: canvas backing store
       pinned to 1280×720, favicon data URI, cars clamped off the water.
-- [ ] S5 Shot staging (?shot=cover|foot|mission|dusk), 4 screenshots, polish
+- [x] S5 Shot staging (?shot=cover|foot|mission|dusk), 4 screenshots, polish
       (incl. one genuine revision edit to main.ts for thinking_revised).
-- [ ] S6 main.ts x2 byte-identical, kit check, final commit + report.
+      Shots: 1280×720 JPEG, 95–118 KiB each, staged scenes byte-identical across
+      repeated captures; canvas backing store pinned to 1280×720; favicon data URI.
+- [x] S6 main.ts x2 byte-identical, kit check, final commit + report.
+      Determinism: two MAKEFUN_OUTPUT_DIR runs diff-clean (dossier.json 735,033 B).
+      Kit check on the final commit: ok:true, failed:[] (transcript gates skip
+      locally by design — the site runs them on the sealed recording).
+      Packaged output tree re-play-tested standalone: zero errors.
 
 ## For the coordinator
 - .makefun/owner.json not added (repo owner = account login serauis); add only if needed.
